@@ -20,6 +20,21 @@ export class AuthService {
   }
   constructor(private http: HttpClient) { }
 
+  registro(name: string, email: string, password: string){
+    const url = `${this.baseUrl}/auth/new`;
+    const body = {name, email, password};
+
+    return this.http.post<AuthResponse>(url, body).pipe(
+      tap(({ok, token}) => {
+        if(ok){
+          localStorage.setItem('token', token!);
+        }
+      }),
+      map(resp => resp.ok),
+      catchError(err => of(err.error.msg))
+    )
+  }
+
   login(email: string, password: string){
 
     const url = `${this.baseUrl}/auth`;
@@ -29,15 +44,15 @@ export class AuthService {
       tap(resp => {
         if(resp.ok){
           localStorage.setItem('token', resp.token!);
-          this._usuario = {
-            name: resp.name!,
-            uid: resp.uid!
-          }
-          console.log(this._usuario);
+          // this._usuario = { opcional
+          //   name: resp.name!,
+          //   uid: resp.uid!,
+          //   email: resp.email!
+          // }
         }
       }),
       map(resp => resp.ok),
-      catchError(err => of(err.error.msg)) // captura el error y convierte el false en un observable
+      catchError(err => of(err.errors)) // captura el error y convierte el false en un observable
     );
   }
 
@@ -50,9 +65,15 @@ export class AuthService {
       localStorage.setItem('token', resp.token!);
           this._usuario = {
             name: resp.name!,
-            uid: resp.uid!
+            uid: resp.uid!,
+            email: resp.email!
           }
       return resp.ok;
     }),catchError(err => of(false)));
+  }
+
+  logout(){
+    // localStorage.clear(); TODO: limpia todo el localstorage
+    localStorage.removeItem('token');
   }
 }
