@@ -1,7 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from 'src/environments/environment';
-import { AuthResponse } from '../interfaces/auth.interfaces';
+import { catchError, map, tap } from "rxjs/operators";
+import { AuthResponse, Usuario } from '../interfaces/auth.interfaces';
+import { of } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -9,6 +11,13 @@ import { AuthResponse } from '../interfaces/auth.interfaces';
 export class AuthService {
 
   private baseUrl: string = environment.baseURL;
+  private _usuario!: Usuario;
+
+  // Signo de Admiracion es para decirle al typescript que viene esa informacion
+
+  get usuario(){
+    return {...this._usuario};
+  }
   constructor(private http: HttpClient) { }
 
   login(email: string, password: string){
@@ -16,6 +25,18 @@ export class AuthService {
     const url = `${this.baseUrl}/auth`;
     const body = { email, password };
 
-    return this.http.post<AuthResponse>(url, body);
+    return this.http.post<AuthResponse>(url, body).pipe(
+      tap(resp => {
+        if(resp.ok){
+          this._usuario = {
+            name: resp.name!,
+            uid: resp.uid!
+          }
+          console.log(this._usuario);
+        }
+      }),
+      map(resp => resp.ok),
+      catchError(err => of(err.error.msg)) // captura el error y convierte el false en un observable
+    );
   }
 }
